@@ -9,7 +9,7 @@ var minimaxRoot = function(depth, game, isMaximisingPlayer) {
     for (let i = 0; i < newGameMoves.length; i++) {
         var newGameMove = newGameMoves[i];
         game.ugly_move(newGameMove);
-        var value = minimax(depth - 1, game, !isMaximisingPlayer);
+        var value = minimax(depth - 1, game, -Infinity, Infinity, !isMaximisingPlayer);
         game.undo();
         if (value > bestMove) {
             bestMove = value;
@@ -21,7 +21,7 @@ var minimaxRoot = function(depth, game, isMaximisingPlayer) {
     return bestMovesFound[Math.floor(Math.random() * bestMovesFound.length)];
 }
 
-var minimax = function (depth, game, isMaximisingPlayer) {
+var minimax = function (depth, game, alpha, beta, isMaximisingPlayer) {
     positionCount++;
     if (depth === 0) {
         return -evaluateBoard(game.board());
@@ -33,16 +33,24 @@ var minimax = function (depth, game, isMaximisingPlayer) {
         var bestMove = -Infinity;
         for (let i = 0; i < newGameMoves.length; i++) {
             game.ugly_move(newGameMoves[i])
-            bestMove = Math.max(bestMove, minimax(depth - 1, game, !isMaximisingPlayer));
+            bestMove = Math.max(bestMove, minimax(depth - 1, game, alpha, beta, !isMaximisingPlayer));
             game.undo();
+            alpha = Math.max(alpha, bestMove);
+            if (beta <= alpha) {
+                return bestMove;
+            }
         }
         return bestMove;
     } else {
         var bestMove = Infinity;
         for (let i = 0; i < newGameMoves.length; i++) {
             game.ugly_move(newGameMoves[i]);
-            bestMove = Math.min(bestMove, minimax(depth - 1, game, !isMaximisingPlayer));
+            bestMove = Math.min(bestMove, minimax(depth - 1, game, alpha, beta, !isMaximisingPlayer));
             game.undo();
+            beta = Math.min(beta, bestMove);
+            if (beta <= alpha) {
+                return bestMove;
+            }
         }
         return bestMove;
     }
