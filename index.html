@@ -9,6 +9,13 @@
         Random moves
     </h3>
     <div id="board" class="board"></div>
+    <div id="promotion-dialog" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; border: 2px solid black; padding: 20px; z-index: 1000;">
+        <p>Choose promotion piece:</p>
+        <button onclick="selectPromotion('q')">♕ Queen</button>
+        <button onclick="selectPromotion('r')">♖ Rook</button>
+        <button onclick="selectPromotion('b')">♗ Bishop</button>
+        <button onclick="selectPromotion('n')">♘ Knight</button>
+    </div>
     <br>
     <div class="info">
         <div id="move-history" class="move-history">

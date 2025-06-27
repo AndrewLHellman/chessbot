@@ -44,7 +44,37 @@ var renderMoveHistory = function (moves) {
 
 };
 
+var pendingPromotion = null;
+
 var onDrop = function (source, target) {
+    var piece = game.get(source);
+    var isPromotion = piece && piece.type === 'p' &&
+                     ((piece.color === 'w' && target[1] === '8') ||
+                      (piece.color === 'b' && target[1] === '1'));
+
+    if (isPromotion) {
+        // First, try the move to make sure it's legal
+        var testMove = game.move({
+            from: source,
+            to: target,
+            promotion: 'q'  // Test with queen
+        });
+
+        if (testMove === null) {
+            removeGreySquares();
+            return 'snapback';  // Illegal move
+        }
+
+        // Undo the test move
+        game.undo();
+
+        // Store the pending promotion and show dialog
+        pendingPromotion = { from: source, to: target };
+        document.getElementById('promotion-dialog').style.display = 'block';
+
+        // Let the board think the move succeeded temporarily
+        return;
+    }
 
     var move = game.move({
         from: source,
@@ -60,6 +90,29 @@ var onDrop = function (source, target) {
     renderMoveHistory(game.history());
     window.setTimeout(makeBestMove, 250);
 };
+
+function selectPromotion(piece) {
+    document.getElementById('promotion-dialog').style.display = 'none';
+
+    var move = game.move({
+        from: pendingPromotion.from,
+        to: pendingPromotion.to,
+        promotion: piece
+    });
+
+    pendingPromotion = null;
+    removeGreySquares();
+
+    if (move === null) {
+        // This shouldn't happen since we tested it, but just in case
+        board.position(game.fen());
+        return;
+    }
+
+    board.position(game.fen());
+    renderMoveHistory(game.history());
+    window.setTimeout(makeBestMove, 250);
+}
 
 var onSnapEnd = function () {
     board.position(game.fen());
