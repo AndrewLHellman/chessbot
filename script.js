@@ -1,30 +1,52 @@
 var board,
     game = new Chess();
 
-var calculateBestMove = function(game) {
-
+var minimaxRoot = function(depth, game, isMaximisingPlayer) {
     var newGameMoves = game.ugly_moves();
-    var bestMoves = [];
+    var bestMove = -Infinity;
+    var bestMovesFound = [];
 
-    var bestValue = -Infinity;
-
-    for (var i = 0; i < newGameMoves.length; i++) {
+    for (let i = 0; i < newGameMoves.length; i++) {
         var newGameMove = newGameMoves[i];
         game.ugly_move(newGameMove);
-
-        var boardValue = -evaluateBoard(game.board())
+        var value = minimax(depth - 1, game, !isMaximisingPlayer);
         game.undo();
-        if (boardValue > bestValue) {
-            bestValue = boardValue;
-            bestMoves = [newGameMove];
-        } else if (boardValue === bestValue) {
-            bestMoves.push(newGameMove);
+        if (value > bestMove) {
+            bestMove = value;
+            bestMovesFound = [newGameMove];
+        } else if (value === bestMove) {
+            bestMovesFound.push(newGameMove);
         }
     }
+    return bestMovesFound[Math.floor(Math.random() * bestMovesFound.length)];
+}
 
-    return bestMoves[Math.floor(Math.random() * bestMoves.length)];
+var minimax = function (depth, game, isMaximisingPlayer) {
+    positionCount++;
+    if (depth === 0) {
+        return -evaluateBoard(game.board());
+    }
 
-};
+    var newGameMoves = game.ugly_moves();
+
+    if (isMaximisingPlayer) {
+        var bestMove = -Infinity;
+        for (let i = 0; i < newGameMoves.length; i++) {
+            game.ugly_move(newGameMoves[i])
+            bestMove = Math.max(bestMove, minimax(depth - 1, game, !isMaximisingPlayer));
+            game.undo();
+        }
+        return bestMove;
+    } else {
+        var bestMove = Infinity;
+        for (let i = 0; i < newGameMoves.length; i++) {
+            game.ugly_move(newGameMoves[i]);
+            bestMove = Math.min(bestMove, minimax(depth - 1, game, !isMaximisingPlayer));
+            game.undo();
+        }
+        return bestMove;
+    }
+}
 
 var evaluateBoard = function (board) {
     var totalEvalutation = 0;
@@ -74,16 +96,54 @@ var makeBestMove = function () {
     board.position(game.fen());
     renderMoveHistory(game.history());
     if (game.game_over()) {
-        alert('Game over');
+        reportGameEnd();
     }
 };
 
+var positionCount;
 var getBestMove = function (game) {
     if (game.game_over()) {
-        alert('Game over');
+        reportGameEnd();
     }
-    var bestMove = calculateBestMove(game);
+
+    positionCount = 0;
+    var depth = parseInt($('#search-depth').find(':selected').text());
+
+    var d = new Date().getTime();
+    var bestMove = minimaxRoot(depth, game, true);
+    var d2 = new Date().getTime();
+    var moveTime = (d2 - d);
+    var positionsPerS = ( positionCount * 1000 / moveTime);
+
+    $('#position-count').text(positionCount);
+    $('#time').text(moveTime/1000 + 's');
+    $('#positions-per-s').text(positionsPerS);
     return bestMove;
+};
+
+var reportGameEnd = function() {
+    var result = '';
+
+    if (game.in_checkmate()) {
+        if (game.turn() === 'w') {
+            result = 'Checkmate! Black (AI) wins!';
+        } else {
+            result = 'Checkmate! White (Human) wins!';
+        }
+    } else if (game.in_stalemate()) {
+        result = 'Game ends in stalemate - Draw!';
+    } else if (game.in_threefold_repetition()) {
+        result = 'Game ends by threefold repetition - Draw!';
+    } else if (game.insufficient_material()) {
+        result = 'Game ends due to insufficient material - Draw!';
+    } else if (game.in_draw()) {
+        result = 'Game ends in a draw!';
+    } else {
+        result = 'Game over!';
+    }
+
+    alert(result);
+    console.log(result);
 };
 
 var renderMoveHistory = function (moves) {
