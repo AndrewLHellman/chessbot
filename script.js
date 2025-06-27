@@ -1,12 +1,64 @@
 var board,
     game = new Chess();
 
-var calculateBestMove =function(game) {
+var calculateBestMove = function(game) {
 
     var newGameMoves = game.ugly_moves();
+    var bestMoves = [];
 
-    return newGameMoves[Math.floor(Math.random() * newGameMoves.length)];
+    var bestValue = -Infinity;
 
+    for (var i = 0; i < newGameMoves.length; i++) {
+        var newGameMove = newGameMoves[i];
+        game.ugly_move(newGameMove);
+
+        var boardValue = -evaluateBoard(game.board())
+        game.undo();
+        if (boardValue > bestValue) {
+            bestValue = boardValue;
+            bestMoves = [newGameMove];
+        } else if (boardValue === bestValue) {
+            bestMoves.push(newGameMove);
+        }
+    }
+
+    return bestMoves[Math.floor(Math.random() * bestMoves.length)];
+
+};
+
+var evaluateBoard = function (board) {
+    var totalEvalutation = 0;
+    for (let i = 0; i < 8; i++) {
+        for (let j = 0; j < 8; j++) {
+            totalEvalutation += getPieceValue(board[i][j]);
+        }
+    }
+    return totalEvalutation;
+}
+
+var getPieceValue = function (piece) {
+    if (piece === null) {
+        return 0;
+    }
+    var getAbsoluteValue = function (piece) {
+        if (piece.type === 'p') {
+            return 10;
+        } else if (piece.type === 'r') {
+            return 50;
+        } else if (piece.type === 'n') {
+            return 30;
+        } else if (piece.type === 'b') {
+            return 30 ;
+        } else if (piece.type === 'q') {
+            return 90;
+        } else if (piece.type === 'k') {
+            return 900;
+        }
+        throw "Unknown piece type: " + piece.type;
+    };
+
+    var absoluteValue = getAbsoluteValue(piece, piece.color === 'w');
+    return piece.color === 'w' ? absoluteValue : -absoluteValue;
 };
 
 var onDragStart = function (source, piece, position, orientation) {
@@ -53,26 +105,22 @@ var onDrop = function (source, target) {
                       (piece.color === 'b' && target[1] === '1'));
 
     if (isPromotion) {
-        // First, try the move to make sure it's legal
         var testMove = game.move({
             from: source,
             to: target,
-            promotion: 'q'  // Test with queen
+            promotion: 'q'
         });
 
         if (testMove === null) {
             removeGreySquares();
-            return 'snapback';  // Illegal move
+            return 'snapback';
         }
 
-        // Undo the test move
         game.undo();
 
-        // Store the pending promotion and show dialog
         pendingPromotion = { from: source, to: target };
         document.getElementById('promotion-dialog').style.display = 'block';
 
-        // Let the board think the move succeeded temporarily
         return;
     }
 
@@ -104,7 +152,6 @@ function selectPromotion(piece) {
     removeGreySquares();
 
     if (move === null) {
-        // This shouldn't happen since we tested it, but just in case
         board.position(game.fen());
         return;
     }
